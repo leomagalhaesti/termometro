@@ -54,7 +54,7 @@ field of `~/.claude.json`. It never reads credentials, tokens or API keys, and m
 - **Zero dependencies.** One Python file for the status line; it renders in about 40 ms.
 - **Color only when something needs attention.** Calm by default, loud only near a limit.
 - **Safe install.** The installer backs up your settings and restores your previous status line on uninstall.
-- **Tested** on Linux. macOS Terminal and Windows are supported in code but not yet verified on real machines.
+- **Tested automatically** on Linux, macOS and Windows (Python 3.9 and 3.12) on every change. See the badge above.
 
 ## License
 
