@@ -2,6 +2,8 @@
 
 # Termômetro · never get locked out of Claude Code mid-task
 
+[![tests](https://github.com/leomagalhaesti/termometro/actions/workflows/tests.yml/badge.svg)](https://github.com/leomagalhaesti/termometro/actions/workflows/tests.yml)
+
 Claude Code already passes your **official** 5-hour and weekly limit percentages to the status line.
 Termômetro turns them into the answer that matters: *will I make it until the reset?*
 
