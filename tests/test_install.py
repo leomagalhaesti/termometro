@@ -107,6 +107,23 @@ class InstallEndToEnd(unittest.TestCase):
             r = run([sys.executable, sl], self.env, payload)
             self.assertEqual(r.returncode, 0, (payload, r.stderr.decode("utf-8", "replace")))
 
+    def test_many_chats_at_once(self):
+        """Several Claude Code chats refresh the bar at the same moment (and a background recompute writes
+        the cache). On Windows a file being read cannot be replaced; the bar must still never be empty."""
+        sl = os.path.join(self.skill, "statusline.py")
+        stdin = json.dumps(SAMPLE, ensure_ascii=False).encode("utf-8")
+        for _ in range(3):
+            procs = [subprocess.Popen([sys.executable, sl], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE, env=self.env) for _ in range(8)]
+            procs += [subprocess.Popen([sys.executable, sl, "--recompute"], stdin=subprocess.DEVNULL,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.env) for _ in range(2)]
+            for p in procs:
+                out, err = p.communicate(None if p.stdin is None else stdin, timeout=90)
+                self.assertEqual(p.returncode, 0, err.decode("utf-8", "replace"))
+                if p.args[-1] != "--recompute":
+                    self.assertTrue(out.strip(), "empty bar")
+                    self.assertNotIn(b"Run install.py --doctor", out, out.decode("utf-8", "replace"))
+
 
 if __name__ == "__main__":
     unittest.main()

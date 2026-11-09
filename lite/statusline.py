@@ -26,6 +26,29 @@ for _stream in (sys.stdout, sys.stderr):
         pass
 
 
+def write_json(path, data):
+    """Atomic and safe when several Claude Code chats run the bar at once: a unique temp file per process,
+    retries while Windows keeps the target locked by a reader, and never raises (the bar must not vanish)."""
+    tmp = f"{path}.{os.getpid()}.tmp"
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        for _ in range(10):
+            try:
+                os.replace(tmp, path)
+                return True
+            except PermissionError:
+                time.sleep(0.05)
+    except OSError:
+        pass
+    try:
+        os.remove(tmp)
+    except OSError:
+        pass
+    return False
+
+
 def read_stdin_json():
     """Claude Code sends UTF-8 JSON. Decode bytes ourselves (Windows would use cp1252) and never crash."""
     try:
@@ -80,7 +103,12 @@ def lang():
     for var in ("LC_ALL", "LC_MESSAGES", "LANG", "LANGUAGE"):
         if os.environ.get(var):
             return "pt" if os.environ[var].lower().startswith("pt") else "en"
-    return "en"
+    try:  # Windows and macOS apps often have no LANG; ask the system (Windows says "Portuguese_Brazil")
+        import locale
+        loc = (locale.getlocale()[0] or "").lower()
+    except (ValueError, ImportError):
+        loc = ""
+    return "pt" if loc.startswith(("pt", "portuguese")) else "en"
 
 
 def t(k):
@@ -186,10 +214,7 @@ def recompute():
                 days[day] = days.get(day, 0) + sum(u.get(k) or 0 for k in ("input_tokens", "cache_creation_input_tokens", "output_tokens"))
     today = datetime.now().astimezone().date().isoformat()
     before = [v for d, v in sorted(days.items()) if d < today and v][-14:]
-    os.makedirs(DATA, exist_ok=True)
-    with open(CACHE + ".tmp", "w", encoding="utf-8") as f:
-        json.dump({"day": today, "today": days.get(today, 0), "normal": sum(before) / len(before) if before else 0, "at": time.time()}, f)
-    os.replace(CACHE + ".tmp", CACHE)
+    write_json(CACHE, {"day": today, "today": days.get(today, 0), "normal": sum(before) / len(before) if before else 0, "at": time.time()})
 
 
 def context(path):
@@ -306,4 +331,8 @@ def main():
     print("\n".join(out))
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as _e:  # never leave Claude Code with an empty bar; say how to diagnose instead
+        if "--recompute" not in sys.argv and "--timer" not in sys.argv:
+            print(f"Termômetro: {type(_e).__name__}. Run install.py --doctor")
