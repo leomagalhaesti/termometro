@@ -28,16 +28,39 @@ Termômetro turns them into the answer that matters: *will I make it until the r
 
 ## Install Lite
 
+**macOS / Linux**
+
 ```bash
 git clone https://github.com/leomagalhaesti/termometro.git
 cd termometro/lite
-python3 install.py              # backs up ~/.claude/settings.json first
-python3 install.py --uninstall  # restores your previous status line
+python3 install.py              # backs up ~/.claude/settings.json, installs, then tests the bar
 ```
 
-Or with the SkillHQ CLI: `skillhq install leomagalhaesti/termometro-lite`
+**Windows** (PowerShell or Command Prompt)
 
-Requirements: Python 3.8+, nothing else. `NO_COLOR=1` turns colors off.
+```powershell
+git clone https://github.com/leomagalhaesti/termometro.git
+cd termometro\lite
+py install.py                   # or: python install.py
+```
+
+Or with the SkillHQ CLI: `skillhq install leomagalhaesti/termometro-lite`, then run `install.py` from the installed folder.
+
+**No restart needed.** The installer runs the bar exactly the way Claude Code does (through Git Bash on Windows)
+and prints `Self-test passed`. The bar appears on your next message.
+
+| Command | What it does |
+|---|---|
+| `install.py --doctor` | Diagnoses a missing bar and prints the fix. Changes nothing |
+| `install.py --uninstall` | Restores your previous status line |
+| `install.py --check` | Shows what is configured |
+
+Requirements: Python 3.8+ and nothing else. On Windows, Claude Code itself needs Git for Windows, which the
+installer finds automatically. `NO_COLOR=1` turns colors off.
+
+**Works on** Windows 10/11, macOS and Linux, tested automatically on every change (see the badge above),
+including folders with spaces and accents, `settings.json` files saved by Notepad or PowerShell, and consoles
+that are not UTF-8.
 
 ## Dashboard (Pro)
 

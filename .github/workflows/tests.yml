@@ -8,7 +8,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  system-python:
+    name: ${{ matrix.os }} · built-in Python
     strategy:
       fail-fast: false
       matrix:
@@ -17,9 +18,25 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Run tests with the system's built-in Python 3 (standard library only)
+      - name: Run tests with the system Python 3 (standard library only)
         shell: bash
         run: |
           PY=$(command -v python || command -v python3)
           "$PY" --version
           "$PY" -m unittest discover -s tests -v
+
+  oldest-python:
+    name: ${{ matrix.os }} · Python 3.8 (oldest supported)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+      - shell: bash
+        run: python --version && python -m unittest discover -s tests -v

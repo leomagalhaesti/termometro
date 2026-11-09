@@ -17,7 +17,25 @@ import sys
 import time
 from datetime import datetime
 
-VERSION = "2.2.0-lite"
+# Claude Code reads the status line as UTF-8. Windows pipes default to the ANSI code page, so a single
+# block character, accent or emoji would raise UnicodeEncodeError and the bar would silently vanish.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
+
+def read_stdin_json():
+    """Claude Code sends UTF-8 JSON. Decode bytes ourselves (Windows would use cp1252) and never crash."""
+    try:
+        raw = sys.stdin.buffer.read() if hasattr(sys.stdin, "buffer") else sys.stdin.read().encode("utf-8")
+        data = json.loads(raw.decode("utf-8-sig", "replace") or "{}")
+        return data if isinstance(data, dict) else {}
+    except (ValueError, OSError):
+        return {}
+
+VERSION = "2.3.0-lite"
 CLAUDE = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(os.path.expanduser("~"), ".claude")
 DATA = os.environ.get("TERMOMETRO_DATA") or os.path.join(CLAUDE, "termometro")
 CACHE = os.path.join(DATA, "lite-cache.json")
@@ -169,7 +187,7 @@ def recompute():
     today = datetime.now().astimezone().date().isoformat()
     before = [v for d, v in sorted(days.items()) if d < today and v][-14:]
     os.makedirs(DATA, exist_ok=True)
-    with open(CACHE + ".tmp", "w") as f:
+    with open(CACHE + ".tmp", "w", encoding="utf-8") as f:
         json.dump({"day": today, "today": days.get(today, 0), "normal": sum(before) / len(before) if before else 0, "at": time.time()}, f)
     os.replace(CACHE + ".tmp", CACHE)
 
@@ -221,7 +239,7 @@ def render(data, width, mode):
     clvl = 0 if ctx < 100_000 else 1 if ctx < 250_000 else 2 if ctx < 500_000 else 3
     row2 = []
     try:
-        with open(CACHE) as f:
+        with open(CACHE, encoding="utf-8") as f:
             c = json.load(f)
     except (OSError, ValueError):
         c = {}
@@ -271,13 +289,10 @@ def main():
     if sys.argv[1:2] == ["--recompute"]:
         recompute()
         return
-    try:
-        data = json.load(sys.stdin)
-    except ValueError:
-        data = {}
+    data = read_stdin_json()
     width = int(os.environ.get("COLUMNS") or 0) or shutil.get_terminal_size((140, 20)).columns
     try:
-        with open(CACHE) as f:
+        with open(CACHE, encoding="utf-8") as f:
             c = json.load(f)
     except (OSError, ValueError):
         c = {}
